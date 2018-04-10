@@ -2,7 +2,7 @@ location: clients/tests/test-client.py:881:test_003()/232
 cmd: $NMCLI --mode multiline --terse --color yes con s ethernet
 lang: pl_PL.UTF-8
 returncode: 0
-stdout: 2579 bytes
+stdout: 2606 bytes
 >>>
 connection.id:ethernet
 connection.uuid:UUID-ethernet-REPLACED-REPLACED-REPL
@@ -12,6 +12,7 @@ connection.interface-name:
 connection.autoconnect:yes
 connection.autoconnect-priority:0
 connection.autoconnect-retries:-1
+connection.multi-connect:0
 connection.auth-retries:-1
 connection.timestamp:0
 connection.read-only:no

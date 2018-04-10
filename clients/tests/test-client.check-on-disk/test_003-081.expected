@@ -2,7 +2,7 @@ location: clients/tests/test-client.py:881:test_003()/81
 cmd: $NMCLI --pretty con s ethernet
 lang: C
 returncode: 0
-stdout: 6136 bytes
+stdout: 6188 bytes
 >>>
 ===============================================================================
                      Connection profile details (ethernet)
@@ -15,6 +15,7 @@ connection.interface-name:              --
 connection.autoconnect:                 yes
 connection.autoconnect-priority:        0
 connection.autoconnect-retries:         -1 (default)
+connection.multi-connect:               0 (default)
 connection.auth-retries:                -1
 connection.timestamp:                   0
 connection.read-only:                   no

@@ -2,7 +2,7 @@ location: clients/tests/test-client.py:928:test_004()/22
 cmd: $NMCLI con s con-vpn-1
 lang: pl_PL.UTF-8
 returncode: 0
-stdout: 4370 bytes
+stdout: 4422 bytes
 >>>
 connection.id:                          con-vpn-1
 connection.uuid:                        UUID-con-vpn-1-REPLACED-REPLACED-REP
@@ -12,6 +12,7 @@ connection.interface-name:              --
 connection.autoconnect:                 tak
 connection.autoconnect-priority:        0
 connection.autoconnect-retries:         -1 (default)
+connection.multi-connect:               0 (default)
 connection.auth-retries:                -1
 connection.timestamp:                   0
 connection.read-only:                   nie

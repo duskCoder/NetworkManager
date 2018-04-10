@@ -2,7 +2,7 @@ location: clients/tests/test-client.py:786:test_002()/24
 cmd: $NMCLI c s con-1
 lang: pl_PL.UTF-8
 returncode: 0
-stdout: 992 bytes
+stdout: 1044 bytes
 >>>
 connection.id:                          con-1
 connection.uuid:                        5fcfd6d7-1e63-3332-8826-a7eda103792d
@@ -12,6 +12,7 @@ connection.interface-name:              --
 connection.autoconnect:                 tak
 connection.autoconnect-priority:        0
 connection.autoconnect-retries:         -1 (default)
+connection.multi-connect:               0 (default)
 connection.auth-retries:                -1
 connection.timestamp:                   0
 connection.read-only:                   nie

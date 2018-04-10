@@ -2,7 +2,7 @@ location: clients/tests/test-client.py:845:test_003()/45
 cmd: $NMCLI -f ALL con s ethernet
 lang: C
 returncode: 0
-stdout: 3559 bytes
+stdout: 3611 bytes
 >>>
 connection.id:                          ethernet
 connection.uuid:                        UUID-ethernet-REPLACED-REPLACED-REPL
@@ -12,6 +12,7 @@ connection.interface-name:              --
 connection.autoconnect:                 yes
 connection.autoconnect-priority:        0
 connection.autoconnect-retries:         -1 (default)
+connection.multi-connect:               0 (default)
 connection.auth-retries:                -1
 connection.timestamp:                   0
 connection.read-only:                   no
