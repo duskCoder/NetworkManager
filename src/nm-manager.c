@@ -2482,6 +2482,7 @@ get_existing_connection (NMManager *self,
 	 */
 	if (   assume_state_connection_uuid
 	    && (connection_checked = nm_settings_get_connection_by_uuid (priv->settings, assume_state_connection_uuid))
+	    /*XXX: consider connection multi_connect. */
 	    && !active_connection_find (self, connection_checked, NULL,
 	                                NM_ACTIVE_CONNECTION_STATE_ACTIVATED,
 	                                NULL)
@@ -4063,6 +4064,7 @@ _internal_activate_device (NMManager *self, NMActiveConnection *active, GError *
 	NMConnection *existing_connection = NULL;
 	NMActiveConnection *master_ac = NULL;
 	NMAuthSubject *subject;
+	NMConnectionMultiConnect multi_connect;
 
 	g_return_val_if_fail (NM_IS_MANAGER (self), FALSE);
 	g_return_val_if_fail (NM_IS_ACTIVE_CONNECTION (active), FALSE);
@@ -4220,7 +4222,12 @@ _internal_activate_device (NMManager *self, NMActiveConnection *active, GError *
 	/* Check slaves for master connection and possibly activate them */
 	autoconnect_slaves (self, connection, device, nm_active_connection_get_subject (active));
 
-	{
+	multi_connect = _nm_connection_get_multi_connect (NM_CONNECTION (connection));
+	if (   multi_connect == NM_CONNECTION_MULTI_CONNECT_MULTIPLE
+	    || (   multi_connect == NM_CONNECTION_MULTI_CONNECT_MANUAL_MULTIPLE
+	        && nm_active_connection_get_activation_reason (active) != NM_ACTIVATION_REASON_AUTOCONNECT)) {
+		/* the profile can be activated multiple times. Proceed. */
+	} else {
 		gs_unref_ptrarray GPtrArray *all_ac_arr = NULL;
 		NMActiveConnection *ac;
 		guint i, n_all;
