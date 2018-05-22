@@ -446,6 +446,8 @@ nmc_device_reason_to_string (NMDeviceStateReason reason)
 		return _("A duplicate IP address was detected");
 	case NM_DEVICE_STATE_REASON_IP_METHOD_UNSUPPORTED:
 		return _("The selected IP method is not supported");
+	case NM_DEVICE_STATE_REASON_SRIOV_CONFIGURATION_FAILED:
+		return _("Failed to configure SR-IOV parameters");
 	}
 
 	/* TRANSLATORS: Unknown reason for a device state change (NMDeviceStateReason) */
