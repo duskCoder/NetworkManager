@@ -663,7 +663,8 @@ const NmcMetaGenericInfo *const metagen_con_active_general[_NMC_GENERIC_INFO_TYP
                                          NM_SETTING_WPAN_SETTING_NAME","\
                                          NM_SETTING_6LOWPAN_SETTING_NAME","\
                                          NM_SETTING_PROXY_SETTING_NAME"," \
-                                         NM_SETTING_TC_CONFIG_SETTING_NAME
+                                         NM_SETTING_TC_CONFIG_SETTING_NAME"," \
+                                         NM_SETTING_SRIOV_SETTING_NAME
                                          // NM_SETTING_DUMMY_SETTING_NAME
                                          // NM_SETTING_WIMAX_SETTING_NAME
 
