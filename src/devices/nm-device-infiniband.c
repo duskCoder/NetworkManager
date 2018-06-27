@@ -123,19 +123,18 @@ get_configured_mtu (NMDevice *device, NMDeviceMtuSource *out_source)
 }
 
 static gboolean
-check_connection_compatible (NMDevice *device, NMConnection *connection)
+check_connection_compatible (NMDevice *device, NMConnection *connection, GError **error)
 {
 	NMSettingInfiniband *s_infiniband;
 
-	if (!NM_DEVICE_CLASS (nm_device_infiniband_parent_class)->check_connection_compatible (device, connection))
-		return FALSE;
-
-	if (!nm_connection_is_type (connection, NM_SETTING_INFINIBAND_SETTING_NAME))
+	if (!NM_DEVICE_CLASS (nm_device_infiniband_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
 	s_infiniband = nm_connection_get_setting_infiniband (connection);
-	if (!s_infiniband)
+	if (!s_infiniband) {
+		nm_utils_error_set_literal (error, "profile lacks infiniband settings");
 		return FALSE;
+	}
 
 	if (nm_device_is_real (device)) {
 		const char *mac;
@@ -145,8 +144,10 @@ check_connection_compatible (NMDevice *device, NMConnection *connection)
 		if (mac) {
 			hw_addr = nm_device_get_permanent_hw_address (device);
 			if (   !hw_addr
-			    || !nm_utils_hwaddr_matches (mac, -1, hw_addr, -1))
+			    || !nm_utils_hwaddr_matches (mac, -1, hw_addr, -1)) {
+				nm_utils_error_set_literal (error, "MAC address mismatches");
 				return FALSE;
+			}
 		}
 	}
 
@@ -376,6 +377,7 @@ nm_device_infiniband_class_init (NMDeviceInfinibandClass *klass)
 
 	dbus_object_class->interface_infos = NM_DBUS_INTERFACE_INFOS (&interface_info_device_infiniband);
 
+	parent_class->connection_type_check_compatible = NM_SETTING_INFINIBAND_SETTING_NAME;
 	parent_class->create_and_realize = create_and_realize;
 	parent_class->unrealize = unrealize;
 	parent_class->get_generic_capabilities = get_generic_capabilities;

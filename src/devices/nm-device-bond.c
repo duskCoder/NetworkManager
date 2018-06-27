@@ -56,23 +56,6 @@ get_generic_capabilities (NMDevice *dev)
 }
 
 static gboolean
-check_connection_compatible (NMDevice *device, NMConnection *connection)
-{
-	NMSettingBond *s_bond;
-
-	if (!NM_DEVICE_CLASS (nm_device_bond_parent_class)->check_connection_compatible (device, connection))
-		return FALSE;
-
-	s_bond = nm_connection_get_setting_bond (connection);
-	if (!s_bond || !nm_connection_is_type (connection, NM_SETTING_BOND_SETTING_NAME))
-		return FALSE;
-
-	/* FIXME: match bond properties like mode, etc? */
-
-	return TRUE;
-}
-
-static gboolean
 complete_connection (NMDevice *device,
                      NMConnection *connection,
                      const char *specific_object,
@@ -637,9 +620,9 @@ nm_device_bond_class_init (NMDeviceBondClass *klass)
 
 	dbus_object_class->interface_infos = NM_DBUS_INTERFACE_INFOS (&interface_info_device_bond);
 
+	parent_class->connection_type_check_compatible = NM_SETTING_BOND_SETTING_NAME;
 	parent_class->is_master = TRUE;
 	parent_class->get_generic_capabilities = get_generic_capabilities;
-	parent_class->check_connection_compatible = check_connection_compatible;
 	parent_class->complete_connection = complete_connection;
 
 	parent_class->update_connection = update_connection;

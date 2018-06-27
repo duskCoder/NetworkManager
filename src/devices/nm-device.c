@@ -5417,21 +5417,40 @@ nm_device_match_hwaddr (NMDevice *device,
 }
 
 static gboolean
-check_connection_compatible (NMDevice *self, NMConnection *connection)
+check_connection_compatible (NMDevice *self, NMConnection *connection, GError **error)
 {
 	const char *device_iface = nm_device_get_iface (self);
-	gs_free char *conn_iface = nm_manager_get_connection_iface (nm_manager_get (),
-	                                                            connection,
-	                                                            NULL, NULL);
+	gs_free_error GError *local = NULL;
+	gs_free char *conn_iface = NULL;
+	NMDeviceClass *klass;
+
+	conn_iface = nm_manager_get_connection_iface (nm_manager_get (),
+	                                              connection,
+	                                              NULL,
+	                                              &local);
 
 	/* We always need a interface name for virtual devices, but for
 	 * physical ones a connection without interface name is fine for
 	 * any device. */
-	if (!conn_iface)
-		return !nm_connection_is_virtual (connection);
+	if (!conn_iface) {
+		if (nm_connection_is_virtual (connection)) {
+			nm_utils_error_set (error, "cannot get interface name due to %s", local->message);
+			return FALSE;
+		}
+		return TRUE;
+	}
 
-	if (strcmp (conn_iface, device_iface) != 0)
+	if (!nm_streq0 (conn_iface, device_iface)) {
+		nm_utils_error_set_literal (error, "mismatching interface name");
 		return FALSE;
+	}
+
+	klass = NM_DEVICE_GET_CLASS (self);
+	if (   klass->connection_type_check_compatible
+	    && !nm_connection_is_type (connection, klass->connection_type_check_compatible)) {
+		nm_utils_error_set (error, "connection type is not \"%s\"", NM_SETTING_BOND_SETTING_NAME);
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -5440,6 +5459,7 @@ check_connection_compatible (NMDevice *self, NMConnection *connection)
  * nm_device_check_connection_compatible:
  * @self: an #NMDevice
  * @connection: an #NMConnection
+ * @error: optional reason why it is incompatible.
  *
  * Checks if @connection could potentially be activated on @self.
  * This means only that @self has the proper capabilities, and that
@@ -5452,12 +5472,12 @@ check_connection_compatible (NMDevice *self, NMConnection *connection)
  *   @self.
  */
 gboolean
-nm_device_check_connection_compatible (NMDevice *self, NMConnection *connection)
+nm_device_check_connection_compatible (NMDevice *self, NMConnection *connection, GError **error)
 {
 	g_return_val_if_fail (NM_IS_DEVICE (self), FALSE);
 	g_return_val_if_fail (NM_IS_CONNECTION (connection), FALSE);
 
-	return NM_DEVICE_GET_CLASS (self)->check_connection_compatible (self, connection);
+	return NM_DEVICE_GET_CLASS (self)->check_connection_compatible (self, connection, error);
 }
 
 gboolean
@@ -13081,12 +13101,17 @@ _nm_device_check_connection_available (NMDevice *self,
                                        GError **error)
 {
 	NMDeviceState state;
+	GError *local = NULL;
 
 	/* an unrealized software device is always available, hardware devices never. */
 	if (!nm_device_is_real (self)) {
 		if (nm_device_is_software (self)) {
-			if (!nm_device_check_connection_compatible (self, connection)) {
-				nm_utils_error_set_literal (error, "profile is not compatible with software device");
+			if (!nm_device_check_connection_compatible (self, connection,
+			                                            error ? &local : NULL)) {
+				if (error) {
+					nm_utils_error_set (error, "profile is not compatible with software device (%s)", local->message);
+					g_error_free (local);
+				}
 				return FALSE;
 			}
 			return TRUE;
@@ -13128,8 +13153,12 @@ _nm_device_check_connection_available (NMDevice *self,
 		}
 	}
 
-	if (!nm_device_check_connection_compatible (self, connection)) {
-		nm_utils_error_set_literal (error, "profile is not compatible with device");
+	if (!nm_device_check_connection_compatible (self, connection,
+	                                            error ? &local : NULL)) {
+		if (error) {
+			nm_utils_error_set (error, "profile is not compatible with device (%s)", local->message);
+			g_error_free (local);
+		}
 		return FALSE;
 	}
 

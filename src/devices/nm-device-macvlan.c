@@ -290,40 +290,55 @@ is_available (NMDevice *device, NMDeviceCheckDevAvailableFlags flags)
 /*****************************************************************************/
 
 static gboolean
-check_connection_compatible (NMDevice *device, NMConnection *connection)
+check_connection_compatible (NMDevice *device, NMConnection *connection, GError **error)
 {
 	NMDeviceMacvlanPrivate *priv = NM_DEVICE_MACVLAN_GET_PRIVATE ((NMDeviceMacvlan *) device);
 	NMSettingMacvlan *s_macvlan;
 	const char *parent = NULL;
 
-	if (!NM_DEVICE_CLASS (nm_device_macvlan_parent_class)->check_connection_compatible (device, connection))
+	if (!NM_DEVICE_CLASS (nm_device_macvlan_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
 	s_macvlan = nm_connection_get_setting_macvlan (connection);
-	if (!s_macvlan)
+	if (!s_macvlan) {
+		nm_utils_error_set_literal (error, "missing macvlan setting in profile");
 		return FALSE;
+	}
 
-	if (nm_setting_macvlan_get_tap (s_macvlan) != priv->props.tap)
+	if (nm_setting_macvlan_get_tap (s_macvlan) != priv->props.tap) {
+		if (priv->props.tap)
+			nm_utils_error_set_literal (error, "macvtap device does not match macvlan profile");
+		else
+			nm_utils_error_set_literal (error, "macvlan device does not match macvtap profile");
 		return FALSE;
+	}
 
 	/* Before the device is realized some properties will not be set */
 	if (nm_device_is_real (device)) {
 
-		if (setting_mode_to_platform (nm_setting_macvlan_get_mode (s_macvlan)) != priv->props.mode)
+		if (setting_mode_to_platform (nm_setting_macvlan_get_mode (s_macvlan)) != priv->props.mode) {
+			nm_utils_error_set_literal (error, "macvlan mode setting differs");
 			return FALSE;
+		}
 
-		if (nm_setting_macvlan_get_promiscuous (s_macvlan) ==  priv->props.no_promisc)
+		if (nm_setting_macvlan_get_promiscuous (s_macvlan) ==  priv->props.no_promisc) {
+			nm_utils_error_set_literal (error, "macvlan promiscuous setting differs");
 			return FALSE;
+		}
 
 		/* Check parent interface; could be an interface name or a UUID */
 		parent = nm_setting_macvlan_get_parent (s_macvlan);
 		if (parent) {
-			if (!nm_device_match_parent (device, parent))
+			if (!nm_device_match_parent (device, parent)) {
+				nm_utils_error_set_literal (error, "macvlan parent setting differs");
 				return FALSE;
+			}
 		} else {
 			/* Parent could be a MAC address in an NMSettingWired */
-			if (!nm_device_match_hwaddr (device, connection, TRUE))
+			if (!nm_device_match_hwaddr (device, connection, TRUE)) {
+				nm_utils_error_set_literal (error, "macvlan parent mac setting differs");
 				return FALSE;
+			}
 		}
 	}
 
@@ -402,7 +417,7 @@ update_connection (NMDevice *device, NMConnection *connection)
 
 			/* Don't change a parent specified by UUID if it's still valid */
 			parent_connection = (NMConnection *) nm_settings_get_connection_by_uuid (nm_device_get_settings (device), setting_parent);
-			if (parent_connection && nm_device_check_connection_compatible (parent_device, parent_connection))
+			if (parent_connection && nm_device_check_connection_compatible (parent_device, parent_connection, NULL))
 				new_parent = NULL;
 		}
 		if (new_parent)
@@ -506,6 +521,7 @@ nm_device_macvlan_class_init (NMDeviceMacvlanClass *klass)
 	device_class->check_connection_compatible = check_connection_compatible;
 	device_class->complete_connection = complete_connection;
 	device_class->connection_type = NM_SETTING_MACVLAN_SETTING_NAME;
+	device_class->connection_type_check_compatible = NM_SETTING_MACVLAN_SETTING_NAME;
 	device_class->create_and_realize = create_and_realize;
 	device_class->get_generic_capabilities = get_generic_capabilities;
 	device_class->get_configured_mtu = nm_device_get_configured_mtu_for_wired;

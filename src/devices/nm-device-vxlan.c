@@ -246,65 +246,97 @@ address_matches (const char *str, in_addr_t addr4, struct in6_addr *addr6)
 }
 
 static gboolean
-check_connection_compatible (NMDevice *device, NMConnection *connection)
+check_connection_compatible (NMDevice *device, NMConnection *connection, GError **error)
 {
 	NMDeviceVxlanPrivate *priv = NM_DEVICE_VXLAN_GET_PRIVATE ((NMDeviceVxlan *) device);
 	NMSettingVxlan *s_vxlan;
 	const char *parent;
 
-	if (!NM_DEVICE_CLASS (nm_device_vxlan_parent_class)->check_connection_compatible (device, connection))
+	if (!NM_DEVICE_CLASS (nm_device_vxlan_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
 	s_vxlan = nm_connection_get_setting_vxlan (connection);
-	if (!s_vxlan)
+	if (!s_vxlan) {
+		nm_utils_error_set_literal (error, "missing vxlan settings");
 		return FALSE;
+	}
 
 	if (nm_device_is_real (device)) {
 		parent = nm_setting_vxlan_get_parent (s_vxlan);
-		if (parent && !nm_device_match_parent (device, parent))
+		if (parent && !nm_device_match_parent (device, parent)) {
+			nm_utils_error_set_literal (error, "vxlan parent mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.id != nm_setting_vxlan_get_id (s_vxlan))
+		if (priv->props.id != nm_setting_vxlan_get_id (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan id mismatches");
 			return FALSE;
+		}
 
-		if (!address_matches (nm_setting_vxlan_get_local (s_vxlan), priv->props.local, &priv->props.local6))
+		if (!address_matches (nm_setting_vxlan_get_local (s_vxlan), priv->props.local, &priv->props.local6)) {
+			nm_utils_error_set_literal (error, "vxlan local address mismatches");
 			return FALSE;
+		}
 
-		if (!address_matches (nm_setting_vxlan_get_remote (s_vxlan), priv->props.group, &priv->props.group6))
+		if (!address_matches (nm_setting_vxlan_get_remote (s_vxlan), priv->props.group, &priv->props.group6)) {
+			nm_utils_error_set_literal (error, "vxlan remote address mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.src_port_min != nm_setting_vxlan_get_source_port_min (s_vxlan))
+		if (priv->props.src_port_min != nm_setting_vxlan_get_source_port_min (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan source port min mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.src_port_max != nm_setting_vxlan_get_source_port_max (s_vxlan))
+		if (priv->props.src_port_max != nm_setting_vxlan_get_source_port_max (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan source port max mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.dst_port != nm_setting_vxlan_get_destination_port (s_vxlan))
+		if (priv->props.dst_port != nm_setting_vxlan_get_destination_port (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan destination port mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.tos != nm_setting_vxlan_get_tos (s_vxlan))
+		if (priv->props.tos != nm_setting_vxlan_get_tos (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan TOS mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.ttl != nm_setting_vxlan_get_ttl (s_vxlan))
+		if (priv->props.ttl != nm_setting_vxlan_get_ttl (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan TTL mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.learning != nm_setting_vxlan_get_learning (s_vxlan))
+		if (priv->props.learning != nm_setting_vxlan_get_learning (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan learning mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.ageing != nm_setting_vxlan_get_ageing (s_vxlan))
+		if (priv->props.ageing != nm_setting_vxlan_get_ageing (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan ageing mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.proxy != nm_setting_vxlan_get_proxy (s_vxlan))
+		if (priv->props.proxy != nm_setting_vxlan_get_proxy (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan proxy mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.rsc != nm_setting_vxlan_get_rsc (s_vxlan))
+		if (priv->props.rsc != nm_setting_vxlan_get_rsc (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan rsc mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.l2miss != nm_setting_vxlan_get_l2_miss (s_vxlan))
+		if (priv->props.l2miss != nm_setting_vxlan_get_l2_miss (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan l2miss mismatches");
 			return FALSE;
+		}
 
-		if (priv->props.l3miss != nm_setting_vxlan_get_l3_miss (s_vxlan))
+		if (priv->props.l3miss != nm_setting_vxlan_get_l3_miss (s_vxlan)) {
+			nm_utils_error_set_literal (error, "vxlan l3miss mismatches");
 			return FALSE;
+		}
 	}
 
 	return TRUE;
@@ -367,7 +399,7 @@ update_connection (NMDevice *device, NMConnection *connection)
 			/* Don't change a parent specified by UUID if it's still valid */
 			parent_connection = (NMConnection *) nm_settings_get_connection_by_uuid (nm_device_get_settings (device),
 			                                                                         setting_parent);
-			if (parent_connection && nm_device_check_connection_compatible (parent_device, parent_connection))
+			if (parent_connection && nm_device_check_connection_compatible (parent_device, parent_connection, NULL))
 				new_parent = NULL;
 		}
 	}
@@ -586,6 +618,7 @@ nm_device_vxlan_class_init (NMDeviceVxlanClass *klass)
 	device_class->link_changed = link_changed;
 	device_class->unrealize_notify = unrealize_notify;
 	device_class->connection_type = NM_SETTING_VXLAN_SETTING_NAME;
+	device_class->connection_type_check_compatible = NM_SETTING_VXLAN_SETTING_NAME;
 	device_class->create_and_realize = create_and_realize;
 	device_class->check_connection_compatible = check_connection_compatible;
 	device_class->complete_connection = complete_connection;

@@ -92,24 +92,32 @@ check_connection_available (NMDevice *device,
 }
 
 static gboolean
-check_connection_compatible (NMDevice *device, NMConnection *connection)
+check_connection_compatible (NMDevice *device, NMConnection *connection, GError **error)
 {
 	NMSettingBridge *s_bridge;
 	const char *mac_address;
 
-	if (!NM_DEVICE_CLASS (nm_device_bridge_parent_class)->check_connection_compatible (device, connection))
-		return FALSE;
-
-	s_bridge = nm_connection_get_setting_bridge (connection);
-	if (!s_bridge)
+	if (!NM_DEVICE_CLASS (nm_device_bridge_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
 	if (!nm_connection_is_type (connection, NM_SETTING_BRIDGE_SETTING_NAME)) {
-		if (   nm_connection_is_type (connection, NM_SETTING_BLUETOOTH_SETTING_NAME)
-		    && _nm_connection_get_setting_bluetooth_for_nap (connection)) {
-			/* a bluetooth NAP connection is handled by the bridge */
-		} else
+		if (nm_connection_is_type (connection, NM_SETTING_BLUETOOTH_SETTING_NAME)) {
+			if (_nm_connection_get_setting_bluetooth_for_nap (connection)) {
+				/* a bluetooth NAP connection is handled by the bridge */
+			} else {
+				nm_utils_error_set_literal (error, "connection type is not NAP bluetooth");
+				return FALSE;
+			}
+		} else {
+			nm_utils_error_set (error, "connection type is not \"%s\"", NM_SETTING_BRIDGE_SETTING_NAME);
 			return FALSE;
+		}
+	}
+
+	s_bridge = nm_connection_get_setting_bridge (connection);
+	if (!s_bridge) {
+		nm_utils_error_set_literal (error, "missing bridge setting in profile");
+		return FALSE;
 	}
 
 	mac_address = nm_setting_bridge_get_mac_address (s_bridge);
@@ -117,8 +125,10 @@ check_connection_compatible (NMDevice *device, NMConnection *connection)
 		const char *hw_addr;
 
 		hw_addr = nm_device_get_hw_address (device);
-		if (!hw_addr || !nm_utils_hwaddr_matches (hw_addr, -1, mac_address, -1))
+		if (!hw_addr || !nm_utils_hwaddr_matches (hw_addr, -1, mac_address, -1)) {
+			nm_utils_error_set_literal (error, "mac address mismatches");
 			return FALSE;
+		}
 	}
 
 	return TRUE;

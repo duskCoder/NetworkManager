@@ -343,12 +343,12 @@ match_subchans (NMDeviceEthernet *self, NMSettingWired *s_wired, gboolean *try_m
 }
 
 static gboolean
-check_connection_compatible (NMDevice *device, NMConnection *connection)
+check_connection_compatible (NMDevice *device, NMConnection *connection, GError **error)
 {
 	NMDeviceEthernet *self = NM_DEVICE_ETHERNET (device);
 	NMSettingWired *s_wired;
 
-	if (!NM_DEVICE_CLASS (nm_device_ethernet_parent_class)->check_connection_compatible (device, connection))
+	if (!NM_DEVICE_CLASS (nm_device_ethernet_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
 	s_wired = nm_connection_get_setting_wired (connection);
@@ -356,10 +356,14 @@ check_connection_compatible (NMDevice *device, NMConnection *connection)
 	if (nm_connection_is_type (connection, NM_SETTING_PPPOE_SETTING_NAME)) {
 		/* NOP */
 	} else if (nm_connection_is_type (connection, NM_SETTING_WIRED_SETTING_NAME)) {
-		if (!s_wired)
+		if (!s_wired) {
+			nm_utils_error_set_literal (error, "profile has no ethernet settings");
 			return FALSE;
-	} else
+		}
+	} else {
+		nm_utils_error_set (error, "connection type is not \"%s\"", NM_SETTING_WIRED_SETTING_NAME);
 		return FALSE;
+	}
 
 	if (s_wired) {
 		const char *mac, *perm_hw_addr;
@@ -367,28 +371,36 @@ check_connection_compatible (NMDevice *device, NMConnection *connection)
 		const char * const *mac_blacklist;
 		int i;
 
-		if (!match_subchans (self, s_wired, &try_mac))
+		if (!match_subchans (self, s_wired, &try_mac)) {
+			nm_utils_error_set_literal (error, "s390 subchannels don't match");
 			return FALSE;
+		}
 
 		perm_hw_addr = nm_device_get_permanent_hw_address (device);
 		mac = nm_setting_wired_get_mac_address (s_wired);
 		if (perm_hw_addr) {
-			if (try_mac && mac && !nm_utils_hwaddr_matches (mac, -1, perm_hw_addr, -1))
+			if (try_mac && mac && !nm_utils_hwaddr_matches (mac, -1, perm_hw_addr, -1)) {
+				nm_utils_error_set_literal (error, "permanent MAC address doesn't match");
 				return FALSE;
+			}
 
 			/* Check for MAC address blacklist */
 			mac_blacklist = nm_setting_wired_get_mac_address_blacklist (s_wired);
 			for (i = 0; mac_blacklist[i]; i++) {
 				if (!nm_utils_hwaddr_valid (mac_blacklist[i], ETH_ALEN)) {
-					g_warn_if_reached ();
+					nm_utils_error_set_literal (error, "invalid MAC in blacklist");
 					return FALSE;
 				}
 
-				if (nm_utils_hwaddr_matches (mac_blacklist[i], -1, perm_hw_addr, -1))
+				if (nm_utils_hwaddr_matches (mac_blacklist[i], -1, perm_hw_addr, -1)) {
+					nm_utils_error_set_literal (error, "permanent MAC address of device blacklisted");
 					return FALSE;
+				}
 			}
-		} else if (mac)
+		} else if (mac) {
+			nm_utils_error_set_literal (error, "device has no permanent MAC address to match");
 			return FALSE;
+		}
 	}
 
 	return TRUE;
