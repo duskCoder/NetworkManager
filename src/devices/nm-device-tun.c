@@ -299,12 +299,6 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 	if (!NM_DEVICE_CLASS (nm_device_tun_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
-	s_tun = nm_connection_get_setting_tun (connection);
-	if (!s_tun) {
-		nm_utils_error_set_literal (error, "missing tun setting in profile");
-		return FALSE;
-	}
-
 	if (nm_device_is_real (device)) {
 		switch (priv->props.type) {
 		case IFF_TUN: mode = NM_SETTING_TUN_MODE_TUN; break;
@@ -313,6 +307,8 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 			nm_utils_error_set_literal (error, "invalid tun type on device");
 			return FALSE;
 		}
+
+		s_tun = nm_connection_get_setting_tun (connection);
 
 		if (mode != nm_setting_tun_get_mode (s_tun)) {
 			nm_utils_error_set_literal (error, "tun mode setting mismatches");

@@ -130,15 +130,11 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 	if (!NM_DEVICE_CLASS (nm_device_infiniband_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
-	s_infiniband = nm_connection_get_setting_infiniband (connection);
-	if (!s_infiniband) {
-		nm_utils_error_set_literal (error, "profile lacks infiniband settings");
-		return FALSE;
-	}
-
 	if (nm_device_is_real (device)) {
 		const char *mac;
 		const char *hw_addr;
+
+		s_infiniband = nm_connection_get_setting_infiniband (connection);
 
 		mac = nm_setting_infiniband_get_mac_address (s_infiniband);
 		if (mac) {

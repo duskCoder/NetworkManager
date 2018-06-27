@@ -300,10 +300,6 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 		return FALSE;
 
 	s_macvlan = nm_connection_get_setting_macvlan (connection);
-	if (!s_macvlan) {
-		nm_utils_error_set_literal (error, "missing macvlan setting in profile");
-		return FALSE;
-	}
 
 	if (nm_setting_macvlan_get_tap (s_macvlan) != priv->props.tap) {
 		if (priv->props.tap)
@@ -335,7 +331,7 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 			}
 		} else {
 			/* Parent could be a MAC address in an NMSettingWired */
-			if (!nm_device_match_hwaddr (device, connection, TRUE)) {
+			if (!nm_device_match_parent_hwaddr (device, connection, TRUE)) {
 				nm_utils_error_set_literal (error, "macvlan parent mac setting differs");
 				return FALSE;
 			}
@@ -374,7 +370,7 @@ complete_connection (NMDevice *device,
 	 * settings, then there's not enough information to complete the setting.
 	 */
 	if (   !nm_setting_macvlan_get_parent (s_macvlan)
-	    && !nm_device_match_hwaddr (device, connection, TRUE)) {
+	    && !nm_device_match_parent_hwaddr (device, connection, TRUE)) {
 		g_set_error_literal (error, NM_DEVICE_ERROR, NM_DEVICE_ERROR_INVALID_CONNECTION,
 		                     "The 'macvlan' setting had no interface name, parent, or hardware address.");
 		return FALSE;

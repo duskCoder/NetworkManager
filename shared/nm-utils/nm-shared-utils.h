@@ -386,12 +386,21 @@ _nm_g_slice_free_fcn_define (16)
  *   error reason. Depending on the usage, this might indicate a bug because
  *   usually the target object should stay alive as long as there are pending
  *   operations.
+ *
+ * @NM_UTILS_ERROR_CONNECTION_TYPE_INCOMPATIBLE: used for a very particular
+ *   purpose during nm_device_check_connection_compatible() to indicate that
+ *   the profile does not match the device already because their type differs.
+ *   That is, there is a fundamental reason of trying to check a profile that
+ *   cannot possibly match on this device.
+ *
  * @NM_UTILS_ERROR_INVALID_ARGUMENT: invalid argument.
  */
 typedef enum {
 	NM_UTILS_ERROR_UNKNOWN = 0,                 /*< nick=Unknown >*/
 	NM_UTILS_ERROR_CANCELLED_DISPOSING,         /*< nick=CancelledDisposing >*/
 	NM_UTILS_ERROR_INVALID_ARGUMENT,            /*< nick=InvalidArgument >*/
+
+	NM_UTILS_ERROR_CONNECTION_TYPE_INCOMPATIBLE,
 } NMUtilsError;
 
 #define NM_UTILS_ERROR (nm_utils_error_quark ())

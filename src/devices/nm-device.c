@@ -5391,9 +5391,9 @@ nm_device_match_parent (NMDevice *self, const char *parent)
 }
 
 gboolean
-nm_device_match_hwaddr (NMDevice *device,
-                        NMConnection *connection,
-                        gboolean fail_if_no_hwaddr)
+nm_device_match_parent_hwaddr (NMDevice *device,
+                               NMConnection *connection,
+                               gboolean fail_if_no_hwaddr)
 {
 	NMSettingWired *s_wired;
 	NMDevice *parent_device;
@@ -5446,10 +5446,15 @@ check_connection_compatible (NMDevice *self, NMConnection *connection, GError **
 	}
 
 	klass = NM_DEVICE_GET_CLASS (self);
-	if (   klass->connection_type_check_compatible
-	    && !nm_connection_is_type (connection, klass->connection_type_check_compatible)) {
-		nm_utils_error_set (error, "connection type is not \"%s\"", NM_SETTING_BOND_SETTING_NAME);
-		return FALSE;
+	if (klass->connection_type_check_compatible) {
+		if (!nm_connection_is_type (connection, klass->connection_type_check_compatible)) {
+			nm_utils_error_set (error, "connection type is not \"%s\"", NM_SETTING_BOND_SETTING_NAME);
+			return FALSE;
+		}
+		if (!nm_connection_get_setting_by_name (connection, klass->connection_type_check_compatible)) {
+			nm_utils_error_set (error, "connection misses \"%s\" settings", NM_SETTING_BOND_SETTING_NAME);
+			return FALSE;
+		}
 	}
 
 	return TRUE;

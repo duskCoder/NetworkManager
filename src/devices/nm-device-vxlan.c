@@ -255,13 +255,9 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 	if (!NM_DEVICE_CLASS (nm_device_vxlan_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
-	s_vxlan = nm_connection_get_setting_vxlan (connection);
-	if (!s_vxlan) {
-		nm_utils_error_set_literal (error, "missing vxlan settings");
-		return FALSE;
-	}
-
 	if (nm_device_is_real (device)) {
+		s_vxlan = nm_connection_get_setting_vxlan (connection);
+
 		parent = nm_setting_vxlan_get_parent (s_vxlan);
 		if (parent && !nm_device_match_parent (device, parent)) {
 			nm_utils_error_set_literal (error, "vxlan parent mismatches");

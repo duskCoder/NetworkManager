@@ -49,23 +49,6 @@ G_DEFINE_TYPE (NMDevicePpp, nm_device_ppp, NM_TYPE_DEVICE)
 
 #define NM_DEVICE_PPP_GET_PRIVATE(self) _NM_GET_PRIVATE (self, NMDevicePpp, NM_IS_DEVICE_PPP)
 
-static gboolean
-check_connection_compatible (NMDevice *device, NMConnection *connection, GError **error)
-{
-	NMSettingPppoe *s_pppoe;
-
-	if (!NM_DEVICE_CLASS (nm_device_ppp_parent_class)->check_connection_compatible (device, connection, error))
-		return FALSE;
-
-	s_pppoe = nm_connection_get_setting_pppoe (connection);
-	if (!nm_setting_pppoe_get_parent (s_pppoe)) {
-		nm_utils_error_set_literal (error, "missing pppoe parent setting in profile");
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
 static NMDeviceCapabilities
 get_generic_capabilities (NMDevice *device)
 {
@@ -285,7 +268,6 @@ nm_device_ppp_class_init (NMDevicePppClass *klass)
 	parent_class->connection_type_check_compatible = NM_SETTING_PPPOE_SETTING_NAME;
 	parent_class->act_stage2_config = act_stage2_config;
 	parent_class->act_stage3_ip4_config_start = act_stage3_ip4_config_start;
-	parent_class->check_connection_compatible = check_connection_compatible;
 	parent_class->create_and_realize = create_and_realize;
 	parent_class->deactivate = deactivate;
 	parent_class->get_generic_capabilities = get_generic_capabilities;

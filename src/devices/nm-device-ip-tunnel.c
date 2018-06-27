@@ -484,10 +484,6 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 		return FALSE;
 
 	s_ip_tunnel = nm_connection_get_setting_ip_tunnel (connection);
-	if (!s_ip_tunnel) {
-		nm_utils_error_set_literal (error, "profile lacks IP tunnel settings");
-		return FALSE;
-	}
 
 	if (nm_setting_ip_tunnel_get_mode (s_ip_tunnel) != priv->mode) {
 		nm_utils_error_set_literal (error, "incompatible IP tunnel mode");

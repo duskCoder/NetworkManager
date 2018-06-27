@@ -335,19 +335,14 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 {
 	NMDeviceVlanPrivate *priv = NM_DEVICE_VLAN_GET_PRIVATE ((NMDeviceVlan *) device);
 	NMSettingVlan *s_vlan;
-	const char *parent = NULL;
+	const char *parent;
 
 	if (!NM_DEVICE_CLASS (nm_device_vlan_parent_class)->check_connection_compatible (device, connection, error))
 		return FALSE;
 
-	s_vlan = nm_connection_get_setting_vlan (connection);
-	if (!s_vlan) {
-		nm_utils_error_set_literal (error, "missing vlan setting in profile");
-		return FALSE;
-	}
-
-	/* Before the device is realized some properties will not be set */
 	if (nm_device_is_real (device)) {
+		s_vlan = nm_connection_get_setting_vlan (connection);
+
 		if (nm_setting_vlan_get_id (s_vlan) != priv->vlan_id) {
 			nm_utils_error_set_literal (error, "vlan id setting mismatches");
 			return FALSE;
@@ -362,7 +357,7 @@ check_connection_compatible (NMDevice *device, NMConnection *connection, GError 
 			}
 		} else {
 			/* Parent could be a MAC address in an NMSettingWired */
-			if (!nm_device_match_hwaddr (device, connection, TRUE)) {
+			if (!nm_device_match_parent_hwaddr (device, connection, TRUE)) {
 				nm_utils_error_set_literal (error, "vlan parent mac setting differs");
 				return FALSE;
 			}
@@ -414,7 +409,7 @@ complete_connection (NMDevice *device,
 	 * settings, then there's not enough information to complete the setting.
 	 */
 	if (   !nm_setting_vlan_get_parent (s_vlan)
-	    && !nm_device_match_hwaddr (device, connection, TRUE)) {
+	    && !nm_device_match_parent_hwaddr (device, connection, TRUE)) {
 		g_set_error_literal (error, NM_DEVICE_ERROR, NM_DEVICE_ERROR_INVALID_CONNECTION,
 		                     "The 'vlan' setting had no interface name, parent, or hardware address.");
 		return FALSE;
@@ -616,7 +611,6 @@ nm_device_vlan_class_init (NMDeviceVlanClass *klass)
 
 	dbus_object_class->interface_infos = NM_DBUS_INTERFACE_INFOS (&interface_info_device_vlan);
 
-	parent_class->connection_type_check_compatible = NM_SETTING_VLAN_SETTING_NAME;
 	parent_class->create_and_realize = create_and_realize;
 	parent_class->link_changed = link_changed;
 	parent_class->unrealize_notify = unrealize_notify;
@@ -626,6 +620,7 @@ nm_device_vlan_class_init (NMDeviceVlanClass *klass)
 	parent_class->is_available = is_available;
 	parent_class->parent_changed_notify = parent_changed_notify;
 
+	parent_class->connection_type_check_compatible = NM_SETTING_VLAN_SETTING_NAME;
 	parent_class->check_connection_compatible = check_connection_compatible;
 	parent_class->check_connection_available = check_connection_available;
 	parent_class->complete_connection = complete_connection;
