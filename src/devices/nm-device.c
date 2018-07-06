@@ -6217,6 +6217,22 @@ acd_data_destroy (gpointer ptr, GClosure *closure)
 }
 
 static void
+ipv4_dhcp_method_apply_manual (NMDevice *self,
+                               NMIP4Config **configs,
+                               gboolean success)
+{
+	NMDevicePrivate *priv = NM_DEVICE_GET_PRIVATE (self);
+
+	if (success) {
+		if (priv->ip4_state != IP_DONE)
+			ip_config_merge_and_apply (self, AF_INET, TRUE);
+	} else {
+		nm_device_ip_method_failed (self, AF_INET,
+		                            NM_DEVICE_STATE_REASON_IP_ADDRESS_DUPLICATE);
+	}
+}
+
+static void
 ipv4_manual_method_apply (NMDevice *self, NMIP4Config **configs, gboolean success)
 {
 	NMIP4Config *empty;
@@ -7479,6 +7495,23 @@ act_stage3_ip4_config_start (NMDevice *self,
 
 	/* Start IPv4 addressing based on the method requested */
 	if (strcmp (method, NM_SETTING_IP4_CONFIG_METHOD_AUTO) == 0) {
+		NMSettingIPConfig *s_ip4;
+		NMIP4Config **configs, *config;
+
+		s_ip4 = nm_connection_get_setting_ip4_config (connection);
+		g_return_val_if_fail (s_ip4, NM_ACT_STAGE_RETURN_FAILURE);
+
+		if (nm_setting_ip_config_get_num_addresses (s_ip4)) {
+			config = _ip4_config_new (self);
+			nm_ip4_config_merge_setting (config,
+			                             nm_connection_get_setting_ip4_config (connection),
+			                             NM_SETTING_CONNECTION_MDNS_DEFAULT,
+			                             nm_device_get_route_table (self, AF_INET, TRUE),
+			                             nm_device_get_route_metric (self, AF_INET));
+			configs = g_new0 (NMIP4Config *, 2);
+			configs[0] = config;
+			ipv4_dad_start (self, configs, ipv4_dhcp_method_apply_manual);
+		}
 		ret = dhcp4_start (self);
 		if (ret == NM_ACT_STAGE_RETURN_FAILURE)
 			NM_SET_OUT (out_failure_reason, NM_DEVICE_STATE_REASON_DHCP_START_FAILED);
